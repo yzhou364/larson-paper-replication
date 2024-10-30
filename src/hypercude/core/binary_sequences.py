@@ -135,3 +135,5 @@ class BinarySequenceGenerator:
             
         diff = state1 ^ state2  # XOR to find the changed bit
         return int(np.log2(diff))  # Position of the changed bit
+    
+# this is a test comment
