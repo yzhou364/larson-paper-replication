@@ -1,1 +1,1 @@
-"""Hypercube Queuing Model Implementation"""
+"""Package initialization."""

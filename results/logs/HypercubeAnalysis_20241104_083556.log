@@ -1,0 +1,34 @@
+2024-11-04 08:35:56 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\style\core.py", line 137, in use
+    style = _rc_params_in_file(style)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\__init__.py", line 870, in _rc_params_in_file
+    with _open_file_or_url(fname) as fd:
+  File "C:\Users\MarkZ\Miniconda3\Lib\contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\__init__.py", line 847, in _open_file_or_url
+    with open(fname, encoding='utf-8') as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'seaborn'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Projects\hypercube_model\main.py", line 246, in <module>
+    main()
+  File "D:\Projects\hypercube_model\main.py", line 231, in main
+    analysis = HypercubeAnalysis(output_dir=args.output)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\hypercube_model\main.py", line 37, in __init__
+    self.plotter = HypercubePlotter(style='paper')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\hypercube_model\src\visualization\figures.py", line 22, in __init__
+    self._set_style()
+  File "D:\Projects\hypercube_model\src\visualization\figures.py", line 36, in _set_style
+    plt.style.use('seaborn')  # Using base seaborn style instead of seaborn-paper
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\style\core.py", line 139, in use
+    raise OSError(
+OSError: 'seaborn' is not a valid package style, path of style file, URL of style file, or library style name (library styles are listed in `style.available`)

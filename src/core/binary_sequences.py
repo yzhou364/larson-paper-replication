@@ -17,7 +17,11 @@ class BinarySequenceGenerator:
         self.sequence = None
         
     def generate(self) -> np.ndarray:
-        """Generate complete binary sequence with unit-Hamming distance between adjacent elements."""
+        """Generate complete binary sequence with unit-Hamming distance between adjacent elements.
+        
+        Returns:
+            numpy.ndarray: Array of binary sequences as integers
+        """
         sequence = [0, 1]  # Initial sequence for n=1
         
         for k in range(1, self.n):
@@ -32,20 +36,41 @@ class BinarySequenceGenerator:
         return self.sequence
     
     def get_binary_representation(self, decimal_number: int) -> np.ndarray:
-        """Convert decimal number to binary array representation."""
+        """Convert decimal number to binary array representation.
+        
+        Args:
+            decimal_number (int): Decimal number to convert
+            
+        Returns:
+            numpy.ndarray: Binary array representation
+        """
         if decimal_number < 0 or decimal_number >= 2**self.n:
             raise ValueError(f"Number must be between 0 and {2**self.n-1}")
             
         return np.array([int(x) for x in format(decimal_number, f'0{self.n}b')])
     
     def get_hamming_distance(self, state1: int, state2: int) -> int:
-        """Calculate Hamming distance between two states."""
+        """Calculate Hamming distance between two states.
+        
+        Args:
+            state1, state2 (int): States to compare
+            
+        Returns:
+            int: Hamming distance
+        """
         bin1 = self.get_binary_representation(state1)
         bin2 = self.get_binary_representation(state2)
         return np.sum(bin1 != bin2)
     
     def get_adjacent_states(self, state: int) -> List[int]:
-        """Get all states that are unit Hamming distance away from given state."""
+        """Get all states that are unit Hamming distance away from given state.
+        
+        Args:
+            state (int): Current state
+            
+        Returns:
+            List[int]: List of adjacent states
+        """
         adjacent_states = []
         for i in range(self.n):
             # Flip each bit one at a time
@@ -54,7 +79,11 @@ class BinarySequenceGenerator:
         return adjacent_states
     
     def verify_sequence(self) -> bool:
-        """Verify that the generated sequence has unit Hamming distance between adjacent elements."""
+        """Verify that the generated sequence has unit Hamming distance between adjacent elements.
+        
+        Returns:
+            bool: True if sequence is valid, False otherwise
+        """
         if self.sequence is None:
             return False
             
@@ -64,11 +93,25 @@ class BinarySequenceGenerator:
         return True
     
     def get_weight(self, state: int) -> int:
-        """Get the weight (number of ones) in the binary representation of a state."""
+        """Get the weight (number of ones) in the binary representation of a state.
+        
+        Args:
+            state (int): State to analyze
+            
+        Returns:
+            int: Weight of the state
+        """
         return bin(state).count('1')
     
     def get_states_by_weight(self, weight: int) -> List[int]:
-        """Get all states with a specific weight (number of ones)."""
+        """Get all states with a specific weight (number of ones).
+        
+        Args:
+            weight (int): Desired weight
+            
+        Returns:
+            List[int]: List of states with the specified weight
+        """
         if weight < 0 or weight > self.n:
             raise ValueError(f"Weight must be between 0 and {self.n}")
             
@@ -77,9 +120,16 @@ class BinarySequenceGenerator:
             if self.get_weight(state) == weight:
                 states.append(state)
         return states
-
+    
     def get_changed_unit(self, state1: int, state2: int) -> Optional[int]:
-        """Get the index of the unit that changed status between two adjacent states."""
+        """Get the index of the unit that changed status between two adjacent states.
+        
+        Args:
+            state1, state2 (int): Adjacent states to compare
+            
+        Returns:
+            Optional[int]: Index of changed unit, None if states not adjacent
+        """
         if self.get_hamming_distance(state1, state2) != 1:
             return None
             

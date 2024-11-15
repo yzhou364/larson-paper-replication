@@ -1,0 +1,20 @@
+2024-11-04 08:42:30 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-04 08:42:30 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-04 08:42:30 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-04 08:42:30 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "D:\Projects\hypercube_model\main.py", line 247, in <module>
+    main()
+  File "D:\Projects\hypercube_model\main.py", line 236, in main
+    analysis.run_paper_replication()
+  File "D:\Projects\hypercube_model\main.py", line 67, in run_paper_replication
+    zero_line = ZeroLineModel(self.config)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\hypercube_model\src\models\zero_line_model.py", line 28, in __init__
+    super().__init__(config)
+  File "D:\Projects\hypercube_model\src\models\base_model.py", line 31, in __init__
+    self.validate_config()
+  File "D:\Projects\hypercube_model\src\models\base_model.py", line 61, in validate_config
+    if self.config.N <= 0:
+       ^^^^^^^^^^^^^
+AttributeError: 'ModelConfig' object has no attribute 'N'

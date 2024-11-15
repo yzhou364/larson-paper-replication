@@ -1,0 +1,13 @@
+2024-11-04 08:38:16 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "D:\Projects\hypercube_model\main.py", line 246, in <module>
+    main()
+  File "D:\Projects\hypercube_model\main.py", line 231, in main
+    analysis = HypercubeAnalysis(output_dir=args.output)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\hypercube_model\main.py", line 41, in __init__
+    self.config = ConfigManager().get_config()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\hypercube_model\src\utils\config.py", line 280, in get_config
+    raise ValueError("No configuration loaded")
+ValueError: No configuration loaded

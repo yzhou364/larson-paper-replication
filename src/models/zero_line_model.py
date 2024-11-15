@@ -1,85 +1,43 @@
 import numpy as np
-from typing import Dict, List, Optional
-from .base_model import BaseHypercubeModel
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+
+from src.models.base_model import BaseHypercubeModel, ModelConfig
 from src.core.transition_matrix import initialize_transition_matrix
-from src.core.steady_state import steady_state_probabilities
-from src.core.performance import (
-    compute_workload, 
-    compute_workload_imbalance,
-    compute_travel_times,
-    compute_interdistrict_fraction
-)
+from src.core.steady_state import SteadyStateCalculator
+from src.core.performance import PerformanceAnalyzer
+
+@dataclass
+class ZeroLineModelResults:
+    """Results container for zero-line capacity model."""
+    steady_state_probs: np.ndarray
+    workloads: np.ndarray
+    travel_times: Dict[str, float]
+    interdistrict_fractions: np.ndarray
+    performance_summary: Dict[str, float]
 
 class ZeroLineModel(BaseHypercubeModel):
     """Implementation of zero-line capacity hypercube model."""
     
-    def setup_linear_command(self, district_length: float = 1.0):
-        """Setup linear command with uniform atom sizes and districts."""
-        self.validate_inputs()
+    def __init__(self, config: ModelConfig):
+        """Initialize zero-line capacity model.
         
-        # Setup atoms and districts
-        atoms_per_district = self.J // self.N
-        district_assignments = []
+        Args:
+            config (ModelConfig): Model configuration
+        """
+        super().__init__(config)
+        self.dispatch_probs = None
         
-        for i in range(self.N):
-            start_atom = i * atoms_per_district
-            end_atom = start_atom + atoms_per_district
-            district = list(range(start_atom, end_atom))
-            district_assignments.append(district)
-            
-        # Set location probabilities
-        self.set_location_probabilities(district_assignments)
-        
-        # Compute travel times
-        atom_length = district_length / atoms_per_district
-        for i in range(self.J):
-            for j in range(self.J):
-                self.T[i,j] = abs(i - j) * atom_length
-                
-    def compute_performance_measures(self) -> Dict:
-        """Compute performance measures for zero-line capacity system."""
-        if self.steady_state_probs is None:
-            raise ValueError("Must run model before computing performance measures")
-            
-        measures = {}
-        
-        # Compute workloads
-        workloads = compute_workload(self.N, 
-                                   range(2**self.N), 
-                                   self.steady_state_probs)
-        measures['workloads'] = workloads
-        
-        # Compute workload imbalance
-        measures['workload_imbalance'] = compute_workload_imbalance(workloads)
-        
-        # Compute travel times
-        dispatch_probs = self._compute_dispatch_probabilities()
-        measures['travel_times'] = compute_travel_times(
-            range(2**self.N),
-            self.steady_state_probs,
-            self.T,
-            dispatch_probs
-        )
-        
-        # Compute interdistrict response metrics
-        district_assignments = [[] for _ in range(self.N)]
-        atoms_per_district = self.J // self.N
-        for i in range(self.N):
-            start_atom = i * atoms_per_district
-            end_atom = start_atom + atoms_per_district
-            district_assignments[i] = list(range(start_atom, end_atom))
-            
-        measures['interdistrict'] = compute_interdistrict_fraction(
-            range(2**self.N),
-            self.steady_state_probs,
-            district_assignments,
-            dispatch_probs
-        )
-        
-        return measures
-    
     def get_optimal_dispatch(self, state: List[int], atom: int) -> int:
-        """Get optimal unit to dispatch for given state and atom."""
+        """Get optimal unit to dispatch for given state and atom.
+        
+        Args:
+            state (List[int]): Current system state
+            atom (int): Atom requesting service
+            
+        Returns:
+            int: Index of optimal unit to dispatch
+        """
         available_units = [n for n in range(self.N) if state[n] == 0]
         
         if not available_units:
@@ -94,8 +52,12 @@ class ZeroLineModel(BaseHypercubeModel):
         # Return unit with minimum travel time
         return min(travel_times, key=lambda x: x[1])[0]
     
-    def _compute_dispatch_probabilities(self) -> np.ndarray:
-        """Compute probability matrix of unit-atom dispatch assignments."""
+    def compute_dispatch_probabilities(self) -> np.ndarray:
+        """Compute dispatch probability matrix.
+        
+        Returns:
+            numpy.ndarray: Matrix of dispatch probabilities
+        """
         dispatch_probs = np.zeros((self.N, self.J))
         
         for state_num in range(2**self.N):
@@ -109,17 +71,152 @@ class ZeroLineModel(BaseHypercubeModel):
                     
         return dispatch_probs
     
-    def run(self) -> Dict:
-        """Run zero-line capacity model and return results."""
-        # Initialize transition matrix
-        self.transition_matrix = initialize_transition_matrix(
-            self.N, 
-            self.lambda_rate, 
-            self.mu_rate
+    def compute_performance_measures(self) -> Dict:
+        """Compute performance measures for zero-line capacity system.
+        
+        Returns:
+            Dict: Performance measures
+        """
+        if self.steady_state_probs is None:
+            raise ValueError("Must run model before computing performance measures")
+            
+        # Get states and compute dispatch probabilities
+        states = np.arange(2**self.N)
+        self.dispatch_probs = self.compute_dispatch_probabilities()
+        
+        # Compute all metrics using performance analyzer
+        metrics = self.performance_analyzer.compute_all_metrics(
+            states=states,
+            pi=self.steady_state_probs,
+            T=self.T,
+            dispatch_probs=self.dispatch_probs,
+            districts=self.district_assignments,
+            include_queue=False  # Zero-line capacity model
         )
         
-        # Compute steady state probabilities
-        self.steady_state_probs = steady_state_probabilities(self.transition_matrix)
+        return {
+            'workloads': metrics.workloads,
+            'travel_times': metrics.travel_times,
+            'interdistrict_fractions': metrics.interdistrict_fractions,
+            'performance_summary': self.get_performance_summary()
+        }
+    
+    def run(self) -> ZeroLineModelResults:
+        """Run zero-line capacity model and return results.
         
-        # Compute and return performance measures
-        return self.compute_performance_measures()
+        Returns:
+            ZeroLineModelResults: Model results
+        """
+        # Initialize system
+        self.initialize_system()
+        
+        # Compute steady state probabilities
+        self.compute_steady_state(method='direct')
+        
+        # Compute performance measures
+        measures = self.compute_performance_measures()
+        
+        return ZeroLineModelResults(
+            steady_state_probs=self.steady_state_probs,
+            workloads=measures['workloads'],
+            travel_times=measures['travel_times'],
+            interdistrict_fractions=measures['interdistrict_fractions'],
+            performance_summary=measures['performance_summary']
+        )
+    
+    def analyze_dispatch_patterns(self) -> Dict:
+        """Analyze dispatch patterns and preferences.
+        
+        Returns:
+            Dict: Dispatch pattern analysis
+        """
+        if self.dispatch_probs is None:
+            raise ValueError("Must run model before analyzing dispatch patterns")
+            
+        analysis = {}
+        
+        # Primary response patterns
+        primary_responses = np.argmax(self.dispatch_probs, axis=0)
+        analysis['primary_units'] = primary_responses
+        
+        # Response frequencies
+        analysis['response_frequencies'] = np.sum(self.dispatch_probs, axis=1)
+        
+        # Dispatch preferences
+        preferences = {}
+        for atom in range(self.J):
+            # Sort units by dispatch probability for this atom
+            prefs = np.argsort(-self.dispatch_probs[:, atom])
+            preferences[atom] = prefs.tolist()
+        analysis['dispatch_preferences'] = preferences
+        
+        # Workload distribution analysis
+        analysis['workload_distribution'] = {
+            'by_district': [
+                sum(self.dispatch_probs[n, atom] 
+                    for atom in self.district_assignments[n])
+                for n in range(self.N)
+            ],
+            'interdistrict_fraction': [
+                1 - sum(self.dispatch_probs[n, atom] 
+                       for atom in self.district_assignments[n])
+                for n in range(self.N)
+            ]
+        }
+        
+        return analysis
+    
+    def get_coverage_metrics(self, target_time: float) -> Dict:
+        """Compute coverage metrics for target response time.
+        
+        Args:
+            target_time (float): Target response time
+            
+        Returns:
+            Dict: Coverage metrics
+        """
+        coverage = np.zeros(self.J)
+        
+        for j in range(self.J):
+            # Probability of response within target time
+            coverage[j] = sum(
+                self.dispatch_probs[n,j] 
+                for n in range(self.N)
+                if np.mean([self.T[i,j] for i in self.district_assignments[n]]) <= target_time
+            )
+            
+        return {
+            'coverage_by_atom': coverage,
+            'mean_coverage': np.mean(coverage),
+            'min_coverage': np.min(coverage),
+            'max_coverage': np.max(coverage),
+            'atoms_covered': np.sum(coverage >= 0.90)  # Number of atoms with 90% coverage
+        }
+    
+    def validate_results(self) -> bool:
+        """Validate model results.
+        
+        Returns:
+            bool: True if results are valid
+        """
+        if self.steady_state_probs is None:
+            return False
+            
+        # Check probability sum
+        if not np.isclose(np.sum(self.steady_state_probs), 1.0):
+            return False
+            
+        # Check dispatch probability consistency
+        if self.dispatch_probs is not None:
+            row_sums = np.sum(self.dispatch_probs, axis=1)
+            if not np.allclose(row_sums / np.sum(row_sums), 
+                             self.performance_analyzer.compute_workloads(
+                                 np.arange(2**self.N), 
+                                 self.steady_state_probs
+                             ) / np.sum(self.performance_analyzer.compute_workloads(
+                                 np.arange(2**self.N),
+                                 self.steady_state_probs
+                             ))):
+                return False
+                
+        return True
