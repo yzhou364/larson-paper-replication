@@ -1,0 +1,35 @@
+2024-11-16 13:58:55 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-16 13:58:55 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:58:56 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:58:56 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:58:57 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:58:57 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:58:58 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:58:58 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:58:58 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:58:58 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:58:59 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:58:59 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:58:59 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:58:59 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:00 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:00 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:01 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:01 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:01 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:02 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-16 13:59:02 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 260, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 249, in main
+    analysis.run_paper_replication()
+  File "d:\Github\larsonPaperReplication\main.py", line 97, in run_paper_replication
+    self._generate_comparisons()
+  File "d:\Github\larsonPaperReplication\main.py", line 142, in _generate_comparisons
+    self.results['comparisons'] = comparator.compare_queue_types(
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\analysis\comparison.py", line 59, in compare_queue_types
+    workload_comparison.append(self._compare_distributions(
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SystemComparator' object has no attribute '_compare_distributions'

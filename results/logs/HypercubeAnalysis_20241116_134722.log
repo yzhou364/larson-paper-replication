@@ -1,0 +1,22 @@
+2024-11-16 13:47:22 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-16 13:47:22 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:47:23 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-16 13:47:23 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 250, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 239, in main
+    analysis.run_paper_replication()
+  File "d:\Github\larsonPaperReplication\main.py", line 77, in run_paper_replication
+    infinite_results = infinite_line.run()
+                       ^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\models\infinite_line_model.py", line 211, in run
+    measures = self.compute_performance_measures()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\models\infinite_line_model.py", line 134, in compute_performance_measures
+    adjusted_metrics = self._adjust_metrics_for_queue(metrics, queue_metrics)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\models\infinite_line_model.py", line 188, in _adjust_metrics_for_queue
+    return PerformanceAnalyzer(
+           ^^^^^^^^^^^^^^^^^^^^
+TypeError: PerformanceAnalyzer.__init__() got an unexpected keyword argument 'workloads'

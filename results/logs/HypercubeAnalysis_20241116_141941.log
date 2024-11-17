@@ -1,0 +1,32 @@
+2024-11-16 14:19:41 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-16 14:19:41 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:42 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:42 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:43 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:43 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:44 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:44 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:44 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:44 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:45 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:45 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:45 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:45 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:46 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:46 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:46 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:46 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 14:19:47 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 14:19:49 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-16 14:19:49 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 260, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 249, in main
+    analysis.run_paper_replication()
+  File "d:\Github\larsonPaperReplication\main.py", line 100, in run_paper_replication
+    self._generate_visualizations()
+  File "d:\Github\larsonPaperReplication\main.py", line 165, in _generate_visualizations
+    dashboard = self.interactive_viz.create_performance_dashboard(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: InteractiveVisualizer.create_performance_dashboard() takes 2 positional arguments but 3 were given

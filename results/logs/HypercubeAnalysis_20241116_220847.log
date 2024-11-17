@@ -1,0 +1,32 @@
+2024-11-16 22:08:47 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-16 22:08:47 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:48 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:48 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:48 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:48 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:48 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:48 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:49 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:49 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:49 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:49 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:50 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:50 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:50 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:50 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:50 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:50 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 22:08:51 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 22:08:54 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-16 22:08:54 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 266, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 255, in main
+    analysis.run_paper_replication()
+  File "d:\Github\larsonPaperReplication\main.py", line 104, in run_paper_replication
+    self._generate_report()
+  File "d:\Github\larsonPaperReplication\main.py", line 208, in _generate_report
+    f.write(f"- Workload imbalance: {zero_res['workload_imbalance']:.3f}\n")
+                                     ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'workload_imbalance'

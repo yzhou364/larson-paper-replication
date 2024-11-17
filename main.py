@@ -7,9 +7,10 @@ import numpy as np
 from pathlib import Path
 import logging
 from datetime import datetime
+import matplotlib.pyplot as plt
 import argparse
 from typing import Dict, Optional
-
+from src.utils.config_adapter import adapt_config
 from src.models.zero_line_model import ZeroLineModel
 from src.models.infinite_line_model import InfiniteLineModel
 from src.utils.config import ConfigManager
@@ -47,7 +48,7 @@ class HypercubeAnalysis:
             'infinite_line': {},
             'comparisons': {}
         }
-        
+
     def run_paper_replication(self):
         """Replicate analysis from Larson's 1974 paper."""
         self.logger.log_event('analysis_start', {'type': 'paper_replication'})
@@ -63,26 +64,40 @@ class HypercubeAnalysis:
                 lambda_rate = rho * self.config.system.N
                 self.config.system.lambda_rate = lambda_rate
                 
+                # Create adapted config for models
+                model_config = adapt_config(self.config)
+                
                 # Run zero-line capacity model
-                zero_line = ZeroLineModel(self.config)
+                zero_line = ZeroLineModel(model_config)
                 zero_line.setup_linear_command()
                 zero_results = zero_line.run()
                 
+                # Store results with proper structure
+                self.results['zero_line'][rho] = {
+                    'workloads': zero_results.workloads,
+                    'travel_times': zero_results.travel_times,
+                    'interdistrict_fraction': zero_results.interdistrict_fractions
+                }
+                
                 # Run infinite-line capacity model
-                infinite_line = InfiniteLineModel(self.config)
+                infinite_line = InfiniteLineModel(model_config)
                 infinite_line.setup_linear_command()
                 infinite_results = infinite_line.run()
                 
-                # Store results
-                self.results['zero_line'][rho] = zero_results
-                self.results['infinite_line'][rho] = infinite_results
+                # Store results with proper structure
+                self.results['infinite_line'][rho] = {
+                    'workloads': infinite_results.workloads,
+                    'travel_times': infinite_results.travel_times,
+                    'interdistrict_fraction': infinite_results.interdistrict_fractions,
+                    'queue_metrics': infinite_results.queue_metrics
+                }
                 
                 self.logger.log_event('iteration_complete', {'rho': rho})
                 
             # Generate comparisons
             self._generate_comparisons()
             
-            # Create visualizations
+            # Generate visualizations
             self._generate_visualizations()
             
             # Generate report
@@ -91,7 +106,6 @@ class HypercubeAnalysis:
         except Exception as e:
             self.logger.log_error_with_context(e, {'phase': 'paper_replication'})
             raise
-            
     def run_custom_analysis(self, analysis_type: str, **kwargs):
         """Run custom analysis configuration.
         
@@ -123,9 +137,9 @@ class HypercubeAnalysis:
             
     def _generate_comparisons(self):
         """Generate system comparisons."""
-        from src.analysis.comparison import SystemComparison
+        from src.analysis.comparison import SystemComparator
         
-        comparator = SystemComparison()
+        comparator = SystemComparator()
         self.results['comparisons'] = comparator.compare_queue_types(
             self.results['zero_line'],
             self.results['infinite_line']
@@ -133,36 +147,41 @@ class HypercubeAnalysis:
         
     def _generate_visualizations(self):
         """Generate paper figures and interactive visualizations."""
-        # Extract results
+        # Extract results for all rho values
         rho_values = sorted(self.results['zero_line'].keys())
+        latest_rho = rho_values[-1]  # Get most recent rho value
         
-        # Create paper figures
+        # Create figure directory
+        figure_dir = self.output_dir / 'figures'
+        figure_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Plot workload distributions
         self.plotter.plot_workload_distribution(
-            [r['workloads'] for r in self.results['zero_line'].values()],
+            self.results['zero_line'][latest_rho]['workloads'],
             title="Workload Distribution (Zero-line)"
         )
+        self.plotter.save_figures(figure_dir / 'zero_line_workload', formats=['pdf', 'png'])
         
         self.plotter.plot_workload_distribution(
-            [r['workloads'] for r in self.results['infinite_line'].values()],
+            self.results['infinite_line'][latest_rho]['workloads'],
             title="Workload Distribution (Infinite-line)"
         )
+        self.plotter.save_figures(figure_dir / 'infinite_line_workload', formats=['pdf', 'png'])
+        
+        # Plot performance comparison
+        self.plotter.plot_performance_comparison(
+            self.results['zero_line'],
+            self.results['infinite_line'],
+            rho_values
+        )
+        self.plotter.save_figures(figure_dir / 'performance_comparison', formats=['pdf', 'png'])
         
         # Create interactive dashboard
-        dashboard = self.interactive_viz.create_performance_dashboard(
-            self.results, rho_values
-        )
+        dashboard = self.interactive_viz.create_performance_dashboard(self.results)
+        self.interactive_viz.save_figure(dashboard, self.output_dir / 'dashboard')
         
-        # Save visualizations
-        self.plotter.save_figures(
-            self.output_dir / 'figures',
-            formats=['pdf', 'png']
-        )
-        
-        self.interactive_viz.save_figure(
-            dashboard,
-            self.output_dir / 'dashboard'
-        )
-        
+        plt.close('all')  
+
     def _generate_report(self):
         """Generate analysis report."""
         report_path = self.output_dir / 'analysis_report.md'
@@ -179,6 +198,11 @@ class HypercubeAnalysis:
             
             # Performance results
             f.write("## Performance Results\n\n")
+            
+            # Get all rho values and the latest one for current state
+            rho_values = sorted(self.results['zero_line'].keys())
+            latest_rho = rho_values[-1]
+            
             for rho in sorted(self.results['zero_line'].keys()):
                 f.write(f"\n### System Utilization ρ = {rho:.1f}\n")
                 
@@ -186,24 +210,68 @@ class HypercubeAnalysis:
                 zero_res = self.results['zero_line'][rho]
                 f.write("\nZero-line Capacity Model:\n")
                 f.write(f"- Mean workload: {np.mean(zero_res['workloads']):.3f}\n")
-                f.write(f"- Workload imbalance: {zero_res['workload_imbalance']:.3f}\n")
+                f.write(f"- Workload imbalance: {(np.max(zero_res['workloads']) - np.min(zero_res['workloads'])) / np.mean(zero_res['workloads']):.3f}\n")
+                f.write(f"- Mean travel time: {zero_res['travel_times']['average']:.3f}\n")
+                f.write(f"- Mean interdistrict fraction: {np.mean(zero_res['interdistrict_fraction']):.3f}\n")
                 
                 # Infinite-line results
                 inf_res = self.results['infinite_line'][rho]
                 f.write("\nInfinite-line Capacity Model:\n")
                 f.write(f"- Mean workload: {np.mean(inf_res['workloads']):.3f}\n")
-                f.write(f"- Workload imbalance: {inf_res['workload_imbalance']:.3f}\n")
-                if inf_res.get('queue_metrics'):
-                    f.write(f"- Mean queue length: {inf_res['queue_metrics']['mean_queue_length']:.3f}\n")
-                    
-            # Comparisons
+                f.write(f"- Workload imbalance: {(np.max(inf_res['workloads']) - np.min(inf_res['workloads'])) / np.mean(inf_res['workloads']):.3f}\n")
+                f.write(f"- Mean travel time: {inf_res['travel_times']['average']:.3f}\n")
+                f.write(f"- Mean interdistrict fraction: {np.mean(inf_res['interdistrict_fraction']):.3f}\n")
+                
+                # Queue metrics for infinite-line model
+                if 'queue_metrics' in inf_res:
+                    queue_metrics = inf_res['queue_metrics']
+                    f.write("\nQueue Performance:\n")
+                    f.write(f"- Expected queue length: {queue_metrics['expected_queue_length']:.3f}\n")
+                    f.write(f"- Expected wait time: {queue_metrics['expected_wait_time']:.3f}\n")
+                    f.write(f"- Queue probability: {queue_metrics['probability_queue']:.3f}\n")
+                        
+            # System comparisons section
             f.write("\n## System Comparisons\n\n")
-            comparisons = self.results['comparisons']
-            for metric, comparison in comparisons.items():
-                f.write(f"\n### {metric}\n")
-                f.write(f"- Relative difference: {comparison['relative_change']:.2%}\n")
-                if comparison.get('statistical_tests'):
-                    f.write(f"- Statistical significance: p = {comparison['statistical_tests']['p_value']:.4f}\n")
+            if 'comparisons' in self.results:
+                comparisons = self.results['comparisons']
+                
+                if 'workload' in comparisons:
+                    f.write("### Workload Comparison\n")
+                    avg_change = comparisons['workload']['average']['relative_change']
+                    f.write(f"- Average relative change: {avg_change:.2%}\n")
+                    
+                if 'response_time' in comparisons:
+                    f.write("\n### Response Time Comparison\n")
+                    avg_change = comparisons['response_time']['average']['relative_change']
+                    f.write(f"- Average relative change: {avg_change:.2%}\n")
+                    
+                if 'interdistrict' in comparisons:
+                    f.write("\n### Interdistrict Response Comparison\n")
+                    avg_change = comparisons['interdistrict']['average']['relative_change']
+                    f.write(f"- Average relative change: {avg_change:.2%}\n")
+            
+            # Summary and recommendations
+            f.write("\n## Summary and Recommendations\n\n")
+            
+            # Calculate overall performance differences
+            latest_zero = self.results['zero_line'][latest_rho]
+            latest_inf = self.results['infinite_line'][latest_rho]
+            
+            workload_diff = (np.mean(latest_inf['workloads']) - np.mean(latest_zero['workloads'])) / np.mean(latest_zero['workloads'])
+            travel_diff = (latest_inf['travel_times']['average'] - latest_zero['travel_times']['average']) / latest_zero['travel_times']['average']
+            
+            f.write("### Key Findings:\n")
+            f.write(f"1. Workload Difference: {workload_diff:.2%}\n")
+            f.write(f"2. Travel Time Difference: {travel_diff:.2%}\n")
+            
+            f.write("\n### Recommendations:\n")
+            # Add recommendations based on results
+            if abs(workload_diff) > 0.1:
+                f.write("- Consider workload balancing strategies\n")
+            if abs(travel_diff) > 0.1:
+                f.write("- Review travel time optimization opportunities\n")
+            if 'queue_metrics' in latest_inf and latest_inf['queue_metrics']['probability_queue'] > 0.2:
+                f.write("- Monitor queue formation closely\n")
 
 def main():
     """Main entry point."""

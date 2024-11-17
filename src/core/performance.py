@@ -6,7 +6,7 @@ from dataclasses import dataclass
 class PerformanceMetrics:
     """Container for system performance metrics."""
     workloads: np.ndarray
-    travel_times: np.ndarray
+    travel_times: Dict[str, float]
     interdistrict_fractions: np.ndarray
     queue_metrics: Optional[Dict] = None
 
@@ -72,28 +72,33 @@ class PerformanceAnalyzer:
         Args:
             states (numpy.ndarray): System states
             pi (numpy.ndarray): Steady state probabilities
-            T (numpy.ndarray): Travel time matrix
-            dispatch_probs (numpy.ndarray): Dispatch probabilities
+            T (numpy.ndarray): Travel time matrix (J x J)
+            dispatch_probs (numpy.ndarray): Dispatch probabilities (N x J)
             
         Returns:
             Dict[str, float]: Travel time metrics
         """
-        # Basic travel time calculations
-        avg_travel_time = np.sum(T * dispatch_probs)
-        weighted_times = T * dispatch_probs * pi[:, np.newaxis]
-        
+        # Calculate expected travel time for each dispatch
+        avg_travel_times = np.zeros_like(dispatch_probs)  # N x J matrix
+        for n in range(self.N):  # For each unit
+            for j in range(self.J):  # For each destination atom
+                # Calculate weighted average travel time from all possible starting atoms
+                avg_travel_times[n,j] = np.sum(T[:,j])  # Sum travel times to destination j
+
+        # Compute overall average travel time
+        avg_travel_time = np.sum(avg_travel_times * dispatch_probs)
+
         # Region-specific calculations
-        atom_times = np.sum(weighted_times, axis=0)  # Average time to each atom
-        unit_times = np.sum(weighted_times, axis=1)  # Average time for each unit
-        
+        atom_times = np.sum(dispatch_probs.T * avg_travel_times.T, axis=1)  # Average time to each atom
+        unit_times = np.sum(dispatch_probs * avg_travel_times, axis=1)  # Average time for each unit
+
         return {
             'average': avg_travel_time,
-            'weighted': np.sum(weighted_times),
-            'max': np.max(T * (dispatch_probs > 0)),
-            'std': np.std(T * (dispatch_probs > 0)),
             'by_unit': unit_times,
             'by_atom': atom_times,
-            'variance': np.var(T * (dispatch_probs > 0))
+            'max': np.max(T),
+            'min': np.min(T[T > 0]),  # Minimum non-zero travel time
+            'std': np.std(T[T > 0])
         }
     
     def compute_interdistrict_metrics(self, states: np.ndarray, pi: np.ndarray,
@@ -185,9 +190,13 @@ class PerformanceAnalyzer:
         Returns:
             PerformanceMetrics: All system performance metrics
         """
-        # Compute basic metrics
+        # Compute workloads
         workloads = self.compute_workloads(states, pi)
+        
+        # Compute travel times
         travel_times = self.compute_travel_times(states, pi, T, dispatch_probs)
+        
+        # Compute interdistrict metrics
         interdistrict = self.compute_interdistrict_metrics(
             states, pi, districts, dispatch_probs
         )
@@ -197,37 +206,9 @@ class PerformanceAnalyzer:
         if include_queue:
             queue_metrics = self.compute_queue_metrics(pi)
             
-            # Adjust metrics for queuing
-            if queue_metrics['p_all_busy'] > 0:
-                workloads = self._adjust_workloads_for_queue(
-                    workloads, queue_metrics['p_all_busy']
-                )
-                travel_times = self._adjust_travel_times_for_queue(
-                    travel_times, T, queue_metrics['p_all_busy']
-                )
-        
         return PerformanceMetrics(
             workloads=workloads,
             travel_times=travel_times,
             interdistrict_fractions=interdistrict['by_unit'],
             queue_metrics=queue_metrics
         )
-    
-    def _adjust_workloads_for_queue(self, workloads: np.ndarray, 
-                                  p_all_busy: float) -> np.ndarray:
-        """Adjust workloads for queuing effects."""
-        return workloads + (p_all_busy / self.N)
-    
-    def _adjust_travel_times_for_queue(self, travel_times: Dict[str, float],
-                                     T: np.ndarray, p_all_busy: float) -> Dict[str, float]:
-        """Adjust travel times for queuing effects."""
-        queue_travel_time = np.mean(T)  # Average travel time for queued calls
-        
-        adjusted = {}
-        for metric, value in travel_times.items():
-            if isinstance(value, (int, float)):
-                adjusted[metric] = (1 - p_all_busy) * value + p_all_busy * queue_travel_time
-            elif isinstance(value, np.ndarray):
-                adjusted[metric] = (1 - p_all_busy) * value + p_all_busy * queue_travel_time
-                
-        return adjusted

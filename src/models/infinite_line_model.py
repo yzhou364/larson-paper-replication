@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from src.models.base_model import BaseHypercubeModel, ModelConfig
 from src.core.transition_matrix import initialize_transition_matrix
 from src.core.steady_state import SteadyStateCalculator
-from src.core.performance import PerformanceAnalyzer
+from src.core.performance import PerformanceMetrics
 
 @dataclass
 class InfiniteLineModelResults:
@@ -104,6 +104,57 @@ class InfiniteLineModel(BaseHypercubeModel):
                     
         return dispatch_probs
     
+    def _compute_queue_metrics(self) -> Dict:
+        """Compute queue-specific performance metrics."""
+        queue_prob = sum(self.queue_probs)
+        expected_queue_length = sum(k * p for k, p in enumerate(self.queue_probs))
+        
+        return {
+            'probability_queue': queue_prob,
+            'expected_queue_length': expected_queue_length,
+            'expected_wait_time': expected_queue_length / self.lambda_rate,
+            'total_delay': sum(self.queue_probs) / self.mu_rate,
+            'queue_distribution': {
+                k: p for k, p in enumerate(self.queue_probs) if p > 1e-10
+            }
+        }
+    
+    def _compute_queue_travel_time(self) -> float:
+        """Compute mean travel time for queued calls."""
+        queue_time = 0
+        for i in range(self.J):
+            for j in range(self.J):
+                queue_time += self.f[i] * self.f[j] * self.T[i,j]
+        return queue_time
+    
+    def _adjust_metrics_for_queue(self, metrics: PerformanceMetrics, 
+                                queue_metrics: Dict) -> PerformanceMetrics:
+        """Adjust performance metrics for queuing effects."""
+        queue_prob = queue_metrics['probability_queue']
+        queue_travel_time = self._compute_queue_travel_time()
+        
+        # Adjust workloads
+        adjusted_workloads = metrics.workloads + (queue_prob / self.N)
+        
+        # Adjust travel times
+        adjusted_travel_times = {}
+        for metric, value in metrics.travel_times.items():
+            if isinstance(value, (int, float)):
+                adjusted_travel_times[metric] = (
+                    (1 - queue_prob) * value + queue_prob * queue_travel_time
+                )
+            elif isinstance(value, np.ndarray):
+                adjusted_travel_times[metric] = (
+                    (1 - queue_prob) * value + queue_prob * queue_travel_time
+                )
+        
+        return PerformanceMetrics(
+            workloads=adjusted_workloads,
+            travel_times=adjusted_travel_times,
+            interdistrict_fractions=metrics.interdistrict_fractions,
+            queue_metrics=queue_metrics
+        )
+    
     def compute_performance_measures(self) -> Dict:
         """Compute performance measures for infinite-line capacity system.
         
@@ -141,57 +192,6 @@ class InfiniteLineModel(BaseHypercubeModel):
             'performance_summary': self.get_performance_summary()
         }
     
-    def _compute_queue_metrics(self) -> Dict[str, float]:
-        """Compute queue-specific performance metrics."""
-        queue_prob = sum(self.queue_probs)
-        expected_queue_length = sum(k * p for k, p in enumerate(self.queue_probs))
-        
-        return {
-            'probability_queue': queue_prob,
-            'expected_queue_length': expected_queue_length,
-            'expected_wait_time': expected_queue_length / self.lambda_rate,
-            'total_delay': sum(self.queue_probs) / self.mu_rate,
-            'queue_distribution': {
-                k: p for k, p in enumerate(self.queue_probs) if p > 1e-10
-            }
-        }
-    
-    def _compute_queue_travel_time(self) -> float:
-        """Compute mean travel time for queued calls."""
-        queue_time = 0
-        for i in range(self.J):
-            for j in range(self.J):
-                queue_time += self.f[i] * self.f[j] * self.T[i,j]
-        return queue_time
-    
-    def _adjust_metrics_for_queue(self, metrics: PerformanceAnalyzer, 
-                                queue_metrics: Dict) -> PerformanceAnalyzer:
-        """Adjust performance metrics for queuing effects."""
-        queue_prob = queue_metrics['probability_queue']
-        queue_travel_time = self._compute_queue_travel_time()
-        
-        # Adjust workloads
-        adjusted_workloads = metrics.workloads + (queue_prob / self.N)
-        
-        # Adjust travel times
-        adjusted_travel_times = {}
-        for metric, value in metrics.travel_times.items():
-            if isinstance(value, (int, float)):
-                adjusted_travel_times[metric] = (
-                    (1 - queue_prob) * value + queue_prob * queue_travel_time
-                )
-            elif isinstance(value, np.ndarray):
-                adjusted_travel_times[metric] = (
-                    (1 - queue_prob) * value + queue_prob * queue_travel_time
-                )
-        
-        return PerformanceAnalyzer(
-            workloads=adjusted_workloads,
-            travel_times=adjusted_travel_times,
-            interdistrict_fractions=metrics.interdistrict_fractions,
-            queue_metrics=queue_metrics
-        )
-    
     def run(self) -> InfiniteLineModelResults:
         """Run infinite-line capacity model and return results.
         
@@ -221,21 +221,33 @@ class InfiniteLineModel(BaseHypercubeModel):
         )
     
     def get_queue_length_distribution(self) -> Dict[int, float]:
-        """Get probability distribution of queue lengths."""
+        """Get probability distribution of queue lengths.
+        
+        Returns:
+            Dict[int, float]: Queue length distribution
+        """
         if self.queue_probs is None:
             raise ValueError("Must run model before getting queue distribution")
             
         return {k: p for k, p in enumerate(self.queue_probs) if p > 1e-10}
     
     def get_expected_queue_length(self) -> float:
-        """Calculate expected queue length."""
+        """Calculate expected queue length.
+        
+        Returns:
+            float: Expected queue length
+        """
         if self.queue_probs is None:
             raise ValueError("Must run model before calculating queue length")
             
         return sum(k * p for k, p in enumerate(self.queue_probs))
     
     def get_expected_system_time(self) -> float:
-        """Calculate expected total time in system (wait + service)."""
+        """Calculate expected total time in system (wait + service).
+        
+        Returns:
+            float: Expected system time
+        """
         queue_metrics = self._compute_queue_metrics()
         service_time = 1.0 / self.mu_rate
         return queue_metrics['expected_wait_time'] + service_time

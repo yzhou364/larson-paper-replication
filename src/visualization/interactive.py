@@ -1,9 +1,13 @@
+"""
+Interactive visualization tools for hypercube model results using plotly.
+"""
+
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
 import numpy as np
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass
+from pathlib import Path
 
 @dataclass
 class InteractiveConfig:
@@ -27,186 +31,235 @@ class InteractiveVisualizer:
             config (Optional[InteractiveConfig]): Visualization configuration
         """
         self.config = config or InteractiveConfig()
-        
-    def create_workload_dashboard(self, workloads: np.ndarray, 
-                                rho_values: np.ndarray,
-                                district_info: Optional[Dict] = None) -> go.Figure:
-        """Create interactive workload analysis dashboard.
+    
+    def create_performance_dashboard(self, results: Dict) -> go.Figure:
+        """Create interactive performance analysis dashboard.
         
         Args:
-            workloads (numpy.ndarray): Unit workloads over time
-            rho_values (numpy.ndarray): System utilization values
-            district_info (Optional[Dict]): District information
+            results (Dict): Model results containing zero_line and infinite_line data
             
         Returns:
             plotly.graph_objects.Figure: Interactive dashboard
         """
+        # Extract rho values
+        rho_values = sorted(results['zero_line'].keys())
+        
         # Create subplot layout
         fig = make_subplots(
             rows=2, cols=2,
             subplot_titles=(
-                'Unit Workload Distribution',
-                'Workload Over Time',
-                'Workload Imbalance',
-                'District Analysis'
-            )
+                'Response Time Distribution',
+                'Workload Balance',
+                'Coverage Analysis',
+                'Queue Statistics'
+            ),
+            specs=[[{'type': 'scatter'}, {'type': 'scatter'}],
+                  [{'type': 'scatter'}, {'type': 'scatter'}]]
         )
         
-        # Unit workload distribution
+        # Plot response time comparison
+        zero_times = [results['zero_line'][rho]['travel_times']['average'] for rho in rho_values]
+        inf_times = [results['infinite_line'][rho]['travel_times']['average'] for rho in rho_values]
+        
         fig.add_trace(
-            go.Bar(
-                x=[f'Unit {i+1}' for i in range(len(workloads))],
-                y=workloads[-1],  # Latest workloads
-                name='Current Workload'
-            ),
+            go.Scatter(x=rho_values, y=zero_times, name='Zero-line Response Time',
+                      mode='lines+markers', line=dict(color='blue')),
+            row=1, col=1
+        )
+        fig.add_trace(
+            go.Scatter(x=rho_values, y=inf_times, name='Infinite-line Response Time',
+                      mode='lines+markers', line=dict(color='red')),
             row=1, col=1
         )
         
-        # Workload over time
-        for i in range(len(workloads[0])):
-            fig.add_trace(
-                go.Scatter(
-                    x=rho_values,
-                    y=workloads[:, i],
-                    name=f'Unit {i+1}',
-                    mode='lines+markers'
-                ),
-                row=1, col=2
-            )
-            
-        # Workload imbalance
-        imbalance = np.max(workloads, axis=1) - np.min(workloads, axis=1)
+        # Plot workload balance
+        zero_workloads = [np.mean(results['zero_line'][rho]['workloads']) for rho in rho_values]
+        inf_workloads = [np.mean(results['infinite_line'][rho]['workloads']) for rho in rho_values]
+        
         fig.add_trace(
-            go.Scatter(
-                x=rho_values,
-                y=imbalance,
-                name='Workload Imbalance',
-                line=dict(color='red')
-            ),
+            go.Scatter(x=rho_values, y=zero_workloads, name='Zero-line Workload',
+                      mode='lines+markers', line=dict(color='blue')),
+            row=1, col=2
+        )
+        fig.add_trace(
+            go.Scatter(x=rho_values, y=inf_workloads, name='Infinite-line Workload',
+                      mode='lines+markers', line=dict(color='red')),
+            row=1, col=2
+        )
+        
+        # Plot interdistrict responses
+        zero_inter = [np.mean(results['zero_line'][rho]['interdistrict_fraction']) 
+                     for rho in rho_values]
+        inf_inter = [np.mean(results['infinite_line'][rho]['interdistrict_fraction'])
+                    for rho in rho_values]
+        
+        fig.add_trace(
+            go.Scatter(x=rho_values, y=zero_inter, name='Zero-line Interdistrict',
+                      mode='lines+markers', line=dict(color='blue')),
+            row=2, col=1
+        )
+        fig.add_trace(
+            go.Scatter(x=rho_values, y=inf_inter, name='Infinite-line Interdistrict',
+                      mode='lines+markers', line=dict(color='red')),
             row=2, col=1
         )
         
-        # District analysis if available
-        if district_info is not None:
-            fig.add_trace(
-                go.Box(
-                    y=list(district_info.values()),
-                    name='District Workloads'
-                ),
-                row=2, col=2
-            )
-            
+        # Plot queue metrics (infinite-line only)
+        queue_lengths = []
+        queue_times = []
+        for rho in rho_values:
+            if 'queue_metrics' in results['infinite_line'][rho]:
+                metrics = results['infinite_line'][rho]['queue_metrics']
+                queue_lengths.append(metrics.get('expected_queue_length', 0))
+                queue_times.append(metrics.get('expected_wait_time', 0))
+            else:
+                queue_lengths.append(0)
+                queue_times.append(0)
+        
+        fig.add_trace(
+            go.Scatter(x=rho_values, y=queue_lengths, name='Queue Length',
+                      mode='lines+markers', line=dict(color='green')),
+            row=2, col=2
+        )
+        fig.add_trace(
+            go.Scatter(x=rho_values, y=queue_times, name='Wait Time',
+                      mode='lines+markers', line=dict(color='purple')),
+            row=2, col=2
+        )
+        
         # Update layout
         fig.update_layout(
-            width=self.config.width,
             height=self.config.height,
+            width=self.config.width,
             template=self.config.template,
+            title={
+                'text': "System Performance Dashboard",
+                'y':0.95,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top',
+                'font': dict(size=self.config.title_font_size)
+            },
             showlegend=True,
-            title_text="Workload Analysis Dashboard",
-            title_font_size=self.config.title_font_size
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.2,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=self.config.legend_font_size)
+            ),
+            hovermode='x unified'
         )
+        
+        # Update axes
+        fig.update_xaxes(
+            title_text="System Utilization (ρ)",
+            showgrid=self.config.show_grid,
+            gridwidth=1,
+            gridcolor='lightgray',
+            zeroline=True,
+            zerolinewidth=1,
+            zerolinecolor='gray',
+            tickfont=dict(size=self.config.axis_font_size)
+        )
+        
+        fig.update_yaxes(
+            showgrid=self.config.show_grid,
+            gridwidth=1,
+            gridcolor='lightgray',
+            zeroline=True,
+            zerolinewidth=1,
+            zerolinecolor='gray',
+            tickfont=dict(size=self.config.axis_font_size)
+        )
+        
+        # Update specific y-axis titles
+        fig.update_yaxes(title_text="Response Time", row=1, col=1)
+        fig.update_yaxes(title_text="Workload", row=1, col=2)
+        fig.update_yaxes(title_text="Interdistrict Fraction", row=2, col=1)
+        fig.update_yaxes(title_text="Queue Metrics", row=2, col=2)
         
         return fig
     
-    def create_travel_time_heatmap(self, travel_times: np.ndarray,
-                                 district_boundaries: Optional[List] = None) -> go.Figure:
-        """Create interactive travel time heatmap.
+    def create_workload_heatmap(self, results: Dict) -> go.Figure:
+        """Create interactive workload heatmap.
         
         Args:
-            travel_times (numpy.ndarray): Travel time matrix
-            district_boundaries (Optional[List]): District boundary indices
+            results (Dict): Model results
             
         Returns:
             plotly.graph_objects.Figure: Interactive heatmap
         """
-        fig = go.Figure(data=go.Heatmap(
-            z=travel_times,
-            colorscale=self.config.colorscale,
-            text=np.round(travel_times, 2),
-            texttemplate='%{text}',
-            textfont={"size": 10},
-        ))
+        # Extract workload data
+        rho_values = sorted(results['zero_line'].keys())
+        num_units = len(results['zero_line'][rho_values[0]]['workloads'])
         
-        # Add district boundaries if provided
-        if district_boundaries:
-            for boundary in district_boundaries:
-                fig.add_shape(
-                    type="line",
-                    x0=-0.5,
-                    y0=boundary - 0.5,
-                    x1=len(travel_times) - 0.5,
-                    y1=boundary - 0.5,
-                    line=dict(color="black", width=2)
-                )
-                
+        # Create workload matrices
+        zero_workloads = np.zeros((len(rho_values), num_units))
+        inf_workloads = np.zeros((len(rho_values), num_units))
+        
+        for i, rho in enumerate(rho_values):
+            zero_workloads[i] = results['zero_line'][rho]['workloads']
+            inf_workloads[i] = results['infinite_line'][rho]['workloads']
+        
+        # Create subplots
+        fig = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=('Zero-line Workload', 'Infinite-line Workload')
+        )
+        
+        # Add heatmaps
+        fig.add_trace(
+            go.Heatmap(z=zero_workloads,
+                      x=[f'Unit {i+1}' for i in range(num_units)],
+                      y=rho_values,
+                      colorscale=self.config.colorscale,
+                      name='Zero-line'),
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Heatmap(z=inf_workloads,
+                      x=[f'Unit {i+1}' for i in range(num_units)],
+                      y=rho_values,
+                      colorscale=self.config.colorscale,
+                      name='Infinite-line'),
+            row=1, col=2
+        )
+        
+        # Update layout
         fig.update_layout(
-            title="Travel Time Matrix",
-            width=self.config.width,
-            height=self.config.height,
-            template=self.config.template,
-            xaxis_title="To Atom",
-            yaxis_title="From Atom"
+            height=500,
+            title_text="Workload Distribution Heatmap",
+            yaxis_title="System Utilization (ρ)",
+            yaxis2_title="System Utilization (ρ)"
         )
         
         return fig
     
-    def create_system_animation(self, states: List[np.ndarray],
-                              times: List[float]) -> go.Figure:
-        """Create animated visualization of system states.
+    def save_figure(self, fig: go.Figure, filename: Union[str, Path]):
+        """Save interactive figure.
         
         Args:
-            states (List[numpy.ndarray]): System states over time
-            times (List[float]): Time points
-            
-        Returns:
-            plotly.graph_objects.Figure: Animated visualization
+            fig (plotly.graph_objects.Figure): Figure to save
+            filename (Union[str, Path]): Output filename
         """
-        frames = []
-        for state, time in zip(states, times):
-            frame = go.Frame(
-                data=[go.Heatmap(
-                    z=state,
-                    colorscale=self.config.colorscale,
-                    showscale=False
-                )],
-                name=f't={time:.2f}'
-            )
-            frames.append(frame)
-            
-        fig = go.Figure(
-            data=[go.Heatmap(z=states[0], colorscale=self.config.colorscale)],
-            frames=frames
+        filepath = Path(filename)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Save as HTML
+        fig.write_html(
+            f"{filepath}.html",
+            include_plotlyjs='cdn',
+            full_html=True
         )
         
-        # Add animation controls
-        fig.update_layout(
-            updatemenus=[{
-                'type': 'buttons',
-                'showactive': False,
-                'buttons': [
-                    {'label': 'Play',
-                     'method': 'animate',
-                     'args': [None, {'frame': {'duration': 500, 'redraw': True},
-                                   'fromcurrent': True}]},
-                    {'label': 'Pause',
-                     'method': 'animate',
-                     'args': [[None], {'frame': {'duration': 0, 'redraw': False},
-                                     'mode': 'immediate'}]}
-                ]
-            }],
-            sliders=[{
-                'currentvalue': {'prefix': 'Time: '},
-                'steps': [{'args': [[f't={t:.2f}'], {'frame': {'duration': 0, 'redraw': True},
-                                                   'mode': 'immediate'}],
-                          'label': f'{t:.2f}',
-                          'method': 'animate'} for t in times]
-            }]
-        )
-        
-        return fig
+        # Save as JSON for backup
+        fig.write_json(f"{filepath}.json")
     
-    def create_performance_dashboard(self, results: Dict) -> go.Figure:
-        """Create interactive performance analysis dashboard.
+    def create_queue_analysis_dashboard(self, results: Dict) -> go.Figure:
+        """Create interactive queue analysis dashboard.
         
         Args:
             results (Dict): Model results
@@ -217,93 +270,65 @@ class InteractiveVisualizer:
         fig = make_subplots(
             rows=2, cols=2,
             subplot_titles=(
-                'Response Time Distribution',
-                'Workload Balance',
-                'Coverage Analysis',
-                'Queue Statistics'
+                'Queue Length Distribution',
+                'Wait Time Distribution',
+                'System Utilization',
+                'Performance Metrics'
             )
         )
         
-        # Response time distribution
-        if 'response_times' in results:
-            fig.add_trace(
-                go.Histogram(
-                    x=results['response_times'],
-                    name='Response Times',
-                    nbinsx=30
-                ),
-                row=1, col=1
-            )
-            
-        # Workload balance
-        if 'workloads' in results:
-            fig.add_trace(
-                go.Box(
-                    y=results['workloads'],
-                    name='Unit Workloads'
-                ),
-                row=1, col=2
-            )
-            
-        # Coverage analysis
-        if 'coverage' in results:
-            fig.add_trace(
-                go.Bar(
-                    x=list(results['coverage'].keys()),
-                    y=list(results['coverage'].values()),
-                    name='Coverage'
-                ),
-                row=2, col=1
-            )
-            
-        # Queue statistics
-        if 'queue_stats' in results:
-            fig.add_trace(
-                go.Scatter(
-                    x=results['queue_stats']['times'],
-                    y=results['queue_stats']['lengths'],
-                    mode='lines',
-                    name='Queue Length'
-                ),
-                row=2, col=2
-            )
-            
+        # Extract data
+        rho_values = sorted(results['infinite_line'].keys())
+        queue_data = {
+            'lengths': [],
+            'times': [],
+            'utils': []
+        }
+        
+        for rho in rho_values:
+            if 'queue_metrics' in results['infinite_line'][rho]:
+                metrics = results['infinite_line'][rho]['queue_metrics']
+                queue_data['lengths'].append(metrics.get('expected_queue_length', 0))
+                queue_data['times'].append(metrics.get('expected_wait_time', 0))
+                queue_data['utils'].append(metrics.get('utilization', 0))
+        
+        # Add traces
+        fig.add_trace(
+            go.Histogram(x=queue_data['lengths'], name='Queue Length',
+                        nbinsx=30),
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Histogram(x=queue_data['times'], name='Wait Time',
+                        nbinsx=30),
+            row=1, col=2
+        )
+        
+        fig.add_trace(
+            go.Scatter(x=rho_values, y=queue_data['utils'],
+                      name='System Utilization',
+                      mode='lines+markers'),
+            row=2, col=1
+        )
+        
+        # Add performance box plot
+        metrics = ['Queue Length', 'Wait Time', 'Utilization']
+        values = [queue_data['lengths'], queue_data['times'], queue_data['utils']]
+        
+        fig.add_trace(
+            go.Box(y=np.array(values).flatten(),
+                  x=np.repeat(metrics, [len(v) for v in values]),
+                  name='Performance Distribution'),
+            row=2, col=2
+        )
+        
+        # Update layout
         fig.update_layout(
             height=800,
-            title_text="System Performance Dashboard",
-            showlegend=True
+            title_text="Queue Analysis Dashboard",
+            showlegend=True,
+            template=self.config.template
         )
         
         return fig
-    
-    def save_figure(self, fig: go.Figure, filename: str,
-                   format: str = 'html'):
-        """Save interactive figure.
-        
-        Args:
-            fig (plotly.graph_objects.Figure): Figure to save
-            filename (str): Output filename
-            format (str): Output format ('html' or 'json')
-        """
-        if format == 'html':
-            fig.write_html(f"{filename}.html")
-        elif format == 'json':
-            fig.write_json(f"{filename}.json")
-        else:
-            raise ValueError(f"Unsupported format: {format}")
-            
-    def update_figure_style(self, fig: go.Figure):
-        """Update figure style settings.
-        
-        Args:
-            fig (plotly.graph_objects.Figure): Figure to update
-        """
-        fig.update_layout(
-            template=self.config.template,
-            width=self.config.width,
-            height=self.config.height,
-            font=dict(size=self.config.axis_font_size),
-            title_font_size=self.config.title_font_size,
-            legend_font_size=self.config.legend_font_size,
-            showgrid=self.config.show_grid
-        )

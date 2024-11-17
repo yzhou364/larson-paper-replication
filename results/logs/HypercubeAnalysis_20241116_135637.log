@@ -1,0 +1,35 @@
+2024-11-16 13:56:37 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-16 13:56:37 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:39 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:39 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:39 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:39 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:40 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:40 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:40 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:40 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:41 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:41 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:42 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:42 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:42 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:42 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:43 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:43 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:56:43 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:56:45 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-16 13:56:45 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 260, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 249, in main
+    analysis.run_paper_replication()
+  File "d:\Github\larsonPaperReplication\main.py", line 97, in run_paper_replication
+    self._generate_comparisons()
+  File "d:\Github\larsonPaperReplication\main.py", line 142, in _generate_comparisons
+    self.results['comparisons'] = comparator.compare_queue_types(
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\analysis\comparison.py", line 115, in compare_queue_types
+    'mean_queue_length': np.mean([qm['metrics']['mean_queue_length']
+                                 ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'mean_queue_length'

@@ -38,8 +38,7 @@ class SystemComparator:
                 'queue_performance'
             ]
             
-    def compare_queue_types(self, zero_line: Dict, 
-                          infinite_line: Dict) -> Dict:
+    def compare_queue_types(self, zero_line: Dict, infinite_line: Dict) -> Dict:
         """Compare zero-line and infinite-line capacity systems.
         
         Args:
@@ -51,32 +50,84 @@ class SystemComparator:
         """
         comparison = {}
         
-        # Compare workload distribution
-        comparison['workload'] = self._compare_distributions(
-            zero_line['workloads'],
-            infinite_line['workloads'],
-            'Workload'
-        )
+        # Get the rho values (system utilization levels)
+        rho_values = sorted(zero_line.keys())
+        
+        # Compare workload distributions
+        workload_comparison = []
+        for rho in rho_values:
+            workload_comparison.append(self._compare_distributions(
+                zero_line[rho]['workloads'],
+                infinite_line[rho]['workloads'],
+                'Workload'
+            ))
+        comparison['workload'] = {
+            'by_rho': workload_comparison,
+            'average': {
+                'relative_change': np.mean([comp['basic_stats']['relative_change'] 
+                                        for comp in workload_comparison])
+            }
+        }
         
         # Compare response times
-        comparison['response_time'] = self._compare_distributions(
-            zero_line['travel_times'],
-            infinite_line['travel_times'],
-            'Response Time'
-        )
+        travel_time_comparison = []
+        for rho in rho_values:
+            travel_time_comparison.append(self._compare_distributions(
+                [zero_line[rho]['travel_times']['average']],
+                [infinite_line[rho]['travel_times']['average']],
+                'Response Time'
+            ))
+        comparison['response_time'] = {
+            'by_rho': travel_time_comparison,
+            'average': {
+                'relative_change': np.mean([comp['basic_stats']['relative_change'] 
+                                        for comp in travel_time_comparison])
+            }
+        }
         
-        # Compare service levels
-        comparison['service_level'] = self._compare_service_levels(
-            zero_line, infinite_line
-        )
+        # Compare interdistrict fractions
+        interdistrict_comparison = []
+        for rho in rho_values:
+            interdistrict_comparison.append(self._compare_distributions(
+                zero_line[rho]['interdistrict_fraction'],
+                infinite_line[rho]['interdistrict_fraction'],
+                'Interdistrict'
+            ))
+        comparison['interdistrict'] = {
+            'by_rho': interdistrict_comparison,
+            'average': {
+                'relative_change': np.mean([comp['basic_stats']['relative_change'] 
+                                        for comp in interdistrict_comparison])
+            }
+        }
         
-        # System efficiency comparison
-        comparison['efficiency'] = self._compare_efficiency(
-            zero_line, infinite_line
-        )
+        # Add queue metrics analysis (infinite-line only)
+        queue_metrics = []
+        for rho in rho_values:
+            if 'queue_metrics' in infinite_line[rho]:
+                metrics = infinite_line[rho]['queue_metrics']
+                queue_metrics.append({
+                    'rho': rho,
+                    'expected_queue_length': metrics['expected_queue_length'],
+                    'expected_wait_time': metrics['expected_wait_time'],
+                    'probability_queue': metrics['probability_queue'],
+                    'total_delay': metrics['total_delay']
+                })
+        
+        comparison['queue_performance'] = {
+            'by_rho': queue_metrics,
+            'average': {
+                'expected_queue_length': np.mean([qm['expected_queue_length'] 
+                                                for qm in queue_metrics]),
+                'expected_wait_time': np.mean([qm['expected_wait_time'] 
+                                            for qm in queue_metrics]),
+                'probability_queue': np.mean([qm['probability_queue'] 
+                                            for qm in queue_metrics])
+            } if queue_metrics else {}
+        }
         
         return comparison
-    
+
     def compare_configurations(self, configs: List[Dict], 
                              results: List[Dict]) -> Dict:
         """Compare multiple system configurations.
@@ -125,9 +176,8 @@ class SystemComparator:
         
         return comparison
     
-    def _compare_distributions(self, dist1: np.ndarray, 
-                             dist2: np.ndarray,
-                             metric_name: str) -> Dict:
+    def _compare_distributions(self, dist1: np.ndarray, dist2: np.ndarray,
+                            metric_name: str) -> Dict:
         """Compare two distributions statistically.
         
         Args:
@@ -178,7 +228,6 @@ class SystemComparator:
             'statistical_tests': statistical_tests,
             'bootstrap_results': bootstrap_results
         }
-    
     def _compare_service_levels(self, system1: Dict, system2: Dict) -> Dict:
         """Compare service levels between systems.
         

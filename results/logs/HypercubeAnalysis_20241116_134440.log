@@ -1,0 +1,25 @@
+2024-11-16 13:44:40 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-16 13:44:40 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:44:41 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-16 13:44:41 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 248, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 237, in main
+    analysis.run_paper_replication()
+  File "d:\Github\larsonPaperReplication\main.py", line 70, in run_paper_replication
+    zero_results = zero_line.run()
+                   ^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\models\zero_line_model.py", line 117, in run
+    measures = self.compute_performance_measures()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\models\zero_line_model.py", line 88, in compute_performance_measures
+    metrics = self.performance_analyzer.compute_all_metrics(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\core\performance.py", line 190, in compute_all_metrics
+    travel_times = self.compute_travel_times(states, pi, T, dispatch_probs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\core\performance.py", line 82, in compute_travel_times
+    avg_travel_time = np.sum(T * dispatch_probs)
+                             ~~^~~~~~~~~~~~~~~~
+ValueError: operands could not be broadcast together with shapes (18,18) (9,18) 

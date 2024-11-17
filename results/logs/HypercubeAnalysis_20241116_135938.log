@@ -1,0 +1,47 @@
+2024-11-16 13:59:38 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-16 13:59:38 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:39 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:39 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:40 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:40 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:40 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:40 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:41 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:41 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:41 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:41 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:42 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:42 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:43 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:43 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:43 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:43 - HypercubeAnalysis - INFO - Event: iteration_start
+2024-11-16 13:59:44 - HypercubeAnalysis - INFO - Event: iteration_complete
+2024-11-16 13:59:48 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-16 13:59:48 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 260, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 249, in main
+    analysis.run_paper_replication()
+  File "d:\Github\larsonPaperReplication\main.py", line 100, in run_paper_replication
+    self._generate_visualizations()
+  File "d:\Github\larsonPaperReplication\main.py", line 153, in _generate_visualizations
+    self.plotter.plot_workload_distribution(
+  File "d:\Github\larsonPaperReplication\src\visualization\figures.py", line 108, in plot_workload_distribution
+    bars = ax.bar(range(1, len(workloads) + 1), workloads)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\__init__.py", line 1473, in inner
+    return func(
+           ^^^^^
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\axes\_axes.py", line 2583, in bar
+    r = mpatches.Rectangle(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\patches.py", line 762, in __init__
+    super().__init__(**kwargs)
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\patches.py", line 91, in __init__
+    self.set_linewidth(linewidth)
+  File "C:\Users\MarkZ\Miniconda3\Lib\site-packages\matplotlib\patches.py", line 438, in set_linewidth
+    self._linewidth = float(w)
+                      ^^^^^^^^
+TypeError: only length-1 arrays can be converted to Python scalars
