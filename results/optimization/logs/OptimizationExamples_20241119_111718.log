@@ -1,0 +1,16 @@
+2024-11-19 11:17:18 - OptimizationExamples - ERROR - Error occurred with context
+2024-11-19 11:17:18 - OptimizationExamples - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\examples\optimization_examples.py", line 334, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\examples\optimization_examples.py", line 294, in main
+    model = ZeroLineModel(config)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Github\larsonPaperReplication\src\models\zero_line_model.py", line 28, in __init__
+    super().__init__(config)
+  File "d:\Github\larsonPaperReplication\src\models\base_model.py", line 31, in __init__
+    self.validate_config()
+  File "d:\Github\larsonPaperReplication\src\models\base_model.py", line 62, in validate_config
+    if self.config.N <= 0:
+       ^^^^^^^^^^^^^
+AttributeError: 'ModelConfig' object has no attribute 'N'

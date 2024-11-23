@@ -312,4 +312,6 @@ def main():
         raise
 
 if __name__ == "__main__":
-    main()
+    import numpy
+    print(numpy.version.version)
+    #main()

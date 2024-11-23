@@ -1,0 +1,11 @@
+2024-11-17 09:15:59 - HypercubeAnalysis - INFO - Event: analysis_start
+2024-11-17 09:15:59 - HypercubeAnalysis - ERROR - Error occurred with context
+2024-11-17 09:15:59 - HypercubeAnalysis - ERROR - Uncaught exception:
+Traceback (most recent call last):
+  File "d:\Github\larsonPaperReplication\main.py", line 315, in <module>
+    main()
+  File "d:\Github\larsonPaperReplication\main.py", line 306, in main
+    analysis.run_custom_analysis(args.analysis)
+  File "d:\Github\larsonPaperReplication\main.py", line 129, in run_custom_analysis
+    raise ValueError(f"Unknown analysis type: {analysis_type}")
+ValueError: Unknown analysis type: paper

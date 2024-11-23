@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 """
 Examples demonstrating optimization capabilities of the hypercube model:
 1. District boundary optimization
@@ -20,7 +23,7 @@ from src.analysis.optimization import (
     LocationOptimizer,
     DispatchOptimizer
 )
-
+    
 class OptimizationExample:
     """Demonstrates optimization capabilities of the hypercube model."""
     
