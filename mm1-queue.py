@@ -83,9 +83,9 @@ class MM1Simulator:
         
 def main():
     arrival_rate = 3.0
-    service_rate = 1.5
+    service_rate = 3.5
 
-    horizon = 10
+    horizon = 1000
     simulator = MM1Simulator(arrival_rate, service_rate, horizon)
     print("Average waiting time:", simulator.run())
 
